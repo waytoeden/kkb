@@ -1,38 +1,37 @@
 package kkb.consumer;
 
-import java.util.Collections;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.ConcurrentMap;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.util.concurrent.ConcurrentHashMap;
 import java.time.Duration;
 
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.serialization.StringSerializer;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import spark.Request;
 import spark.Response;
 import spark.Route;
 import spark.Spark;
 
+import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
-import static spark.Spark.*;
 
 public class App 
 {
 	public static boolean StopFlag = false;
 	
-	public static ConcurrentMap<Long, String> customerProfile; 
-	
+	public static Map<Long, String> customerProfile = new ConcurrentHashMap<>();; 
+	public static Properties consumerProps;
     public static void main( String[] args )
     {
-    	
-    	Spark.setPort(8080);
+    	 
+    	Spark.setPort(8091);
     	Spark.get(new Route("/") {
     		@Override
     		public Object handle(Request request, Response response)
@@ -53,27 +52,24 @@ public class App
     	});
     	
         Properties consumerProps = new Properties();
-        consumerProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
-        consumerProps.put(ConsumerConfig.GROUP_ID_CONFIG, "ConsumerGroup_CustomerProfiler");
+        consumerProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "13.124.86.241:9092");
+        consumerProps.put(ConsumerConfig.GROUP_ID_CONFIG, "gg1");
         consumerProps.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
         consumerProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        consumerProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-        consumerProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-		
-        String topicStr = "RegCustomer";
+        consumerProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
+        consumerProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
         
+		
         LinkedList<Thread> threadList = new LinkedList<Thread>();
         
-        
-        
-        
-        int consumerCount = 16;
+        int consumerCount = 1;
 		for(int i = 0 ; i < consumerCount; ++i)
 		{
 			ConsumerThread thr = new ConsumerThread();
 			thr.id = i;
 			thr.consumer = new KafkaConsumer<>(consumerProps);
-			thr.consumer.subscribe(Collections.singletonList(topicStr));
+			thr.consumer.subscribe(Arrays.asList("RegCustomer"));
+			thr.consumer.seekToBeginning(thr.consumer.assignment());
 			threadList.add(thr);
 		}
 		for (Thread thr : threadList) {
@@ -104,43 +100,30 @@ class ConsumerThread extends Thread
 		{
 			if(App.StopFlag)
 				break;
-			ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
-			if(records == null || records.count() < 1)
-			{
-				try {
-					Thread.sleep(0);	// 강제로 thread yield
-	            } catch (InterruptedException e) {
-	            	e.printStackTrace();
-	            	App.StopFlag = true;
-	            }	
-				continue;
-			}
+			ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(500));
 			
 			for (ConsumerRecord<String, String> record : records) {
-				Long cuid = Long.parseLong(record.key());
-				App.customerProfile.put(cuid, record.value());
+				try {
+					
+					ObjectMapper mapper = new ObjectMapper();
+					Map<String, Object> map = new HashMap<String, Object>();
+					
+					map = mapper.readValue(record.value(), new TypeReference<Map<String, String>>(){});
+					
+					System.out.println(map.get("cuid"));
+					Long cuid = Long.parseLong(map.get("cuid").toString());
+					App.customerProfile.put(cuid, record.value());
+					System.out.println(record.value());
+				}
+				catch(Exception e)
+				{
+					//
+					System.out.println(e.getMessage());
+				}
 			}
+			
 		}
 	}
 }
-
-
-class RestfullAPIThread extends Thread
-{
-	@Override
-	public void run()
-	{
-	
-	}
-}
-
-
-
-
-
-
-
-
-
 
 
