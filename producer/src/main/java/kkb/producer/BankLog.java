@@ -53,7 +53,7 @@ public class BankLog
 	
 	public RecordMetadata regCustomer(Customer customer) 
 	{
-		// KafkaProducer is thread-safe so doesn\"t need a lock
+		// KafkaProducer is thread-safe
 		String v = String.format("{\"cuid\":\"%d\", \"name\":\"%s\", \"regDate\":\"%s\"}", customer.getCuid(), customer.getName(), dateFormat.format(customer.getRegDate()));
 		System.out.println(v);
 		
@@ -75,7 +75,7 @@ public class BankLog
 	//Customer와 Account 의 관계가 1:1인지 알수 없고 부모 자식의 관계인지도 알수 없기 때문에 같은 레벨의 entity로 가정함
 	public RecordMetadata openAccount(Customer customer, Account account) 
 	{
-		// KafkaProducer is thread-safe so doesn\"t need a lock
+		// KafkaProducer is thread-safe
 		String v = String.format("{\"no\":\"%d\", \"cuid\":\"%d\", \"regDate\":\"%s\"}", account.getNo(), customer.getCuid(), dateFormat.format(account.getRegDate()));
 		try 
 		{
