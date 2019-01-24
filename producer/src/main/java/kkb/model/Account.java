@@ -9,7 +9,6 @@ public class Account
 	protected long cuid;
 	protected Date regDate;
 	
-	public Account() {}
 	public Account(long cuid, long no, Date regDate)
 	{
 		this.cuid = cuid;

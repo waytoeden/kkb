@@ -2,7 +2,11 @@ package kkb.producer;
 
 import static org.junit.Assert.*;
 
+import java.util.Date;
+
 import org.junit.Test;
+
+import kkb.model.*;
 
 public class BankLogTest {
 
@@ -18,27 +22,27 @@ public class BankLogTest {
 
 	@Test
 	public void testRegCustomer() {
-		fail("Not yet implemented");
+		assertNotNull(BankLog.getInstance().regCustomer(new Customer(0,"",new Date()))); 
 	}
 
 	@Test
 	public void testOpenAccount() {
-		fail("Not yet implemented");
+		assertNotNull(BankLog.getInstance().openAccount(new Customer(0,"",new Date()), new Account(0,0,new Date()))); 
 	}
 
 	@Test
 	public void testDeposit() {
-		fail("Not yet implemented");
+		assertNotNull(BankLog.getInstance().deposit(new Customer(0,"",new Date()), new Account(0,0,new Date()), 0, new Date()));
 	}
 
 	@Test
 	public void testWithdraw() {
-		fail("Not yet implemented");
+		assertNotNull(BankLog.getInstance().withdraw(new Customer(0,"",new Date()), new Account(0,0,new Date()), 0, new Date()));
 	}
 
 	@Test
 	public void testRemit() {
-		fail("Not yet implemented");
+		assertNotNull(BankLog.getInstance().withdraw(new Customer(0,"",new Date()), new Account(0,0,new Date()), 0, new Date()));
 	}
 
 }

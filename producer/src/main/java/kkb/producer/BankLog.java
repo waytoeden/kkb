@@ -11,18 +11,21 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 
 import kkb.model.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class BankLog
 {
 	private BankLog() {}
 	private static BankLog instance;
+	private static Lock _mutex = new ReentrantLock(true);
 	private KafkaProducer<String, String> producer;
 	private Properties producerProps;
 	private DateFormat dateFormat = new SimpleDateFormat("yyyy-mm-dd hh:mm:ss");
-	public boolean initLog(/*get config*/) 
+	public boolean initLog(/*get external config*/) 
 	{
 		producerProps = new Properties();
-		producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "13.124.86.241:9092");
+		producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "000.000.000.000:9092");
 		producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
 		producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
 
@@ -35,15 +38,20 @@ public class BankLog
 	{
 		if(instance == null)
 		{
-			instance = new BankLog();
-			instance.initLog();
+			_mutex.lock();
+			if(instance == null)
+			{
+				instance = new BankLog();
+				instance.initLog();
+			}
+			_mutex.unlock();
 		}
 			
 		
 		return instance;
 	}
 	
-	public void regCustomer(Customer customer) 
+	public RecordMetadata regCustomer(Customer customer) 
 	{
 		// KafkaProducer is thread-safe so doesn\"t need a lock
 		String v = String.format("{\"cuid\":\"%d\", \"name\":\"%s\", \"regDate\":\"%s\"}", customer.getCuid(), customer.getName(), dateFormat.format(customer.getRegDate()));
@@ -51,9 +59,17 @@ public class BankLog
 		
 		// cuid를 key로 지정하면 특정 유저의 정보는 특정 파티션에만 들어갈 테니 다른 파티션에서 발생한 로그와 순서가 뒤바뀌는 걱정을 할 필요 없는듯
 		ProducerRecord<String, String> recode = new ProducerRecord<String, String>("RegCustomer", Long.toString(customer.getCuid()) , v );
-		this.producer.send(recode);
-		this.producer.flush();
-		
+		try 
+		{
+			RecordMetadata recordMetadata = this.producer.send(recode).get();
+			this.producer.flush();
+			return recordMetadata;
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+			return null;
+		}
 	}
 	
 	//Customer와 Account 의 관계가 1:1인지 알수 없고 부모 자식의 관계인지도 알수 없기 때문에 같은 레벨의 entity로 가정함

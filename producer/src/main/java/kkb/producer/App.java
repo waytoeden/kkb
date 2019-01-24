@@ -12,8 +12,6 @@ import kkb.model.*;
 
 public class App 
 {
-
-	
 	
 	public static boolean StopFlag = false;
 	
@@ -64,7 +62,6 @@ public class App
 
 class EventIntvThread extends Thread
 {
-	public int id;
 	@Override
 	public void run()
 	{
